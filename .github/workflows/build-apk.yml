@@ -15,9 +15,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check ZIP exists
+        run: |
+          if [ ! -f "PhoneSpecsGboard-AndroidProject.zip" ]; then
+            echo "ERROR: PhoneSpecsGboard-AndroidProject.zip not found in repository root!"
+            echo "Please upload the ZIP file to the root of the repo."
+            ls -la
+            exit 1
+          fi
+          echo "ZIP found:"
+          ls -lh PhoneSpecsGboard-AndroidProject.zip
+
       - name: Extract Android project
         run: |
           unzip -o PhoneSpecsGboard-AndroidProject.zip -d project
+          echo "Extracted structure:"
+          find project -maxdepth 3 -type d
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,17 +44,15 @@ jobs:
       - name: Build Debug APK
         working-directory: project/PhoneSpecsGboard
         run: |
-          # Create local.properties if needed
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          # Use Gradle wrapper if present, otherwise install Gradle
+          
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon
+            ./gradlew assembleDebug --no-daemon --stacktrace
           else
-            # Fallback: install Gradle 8.2
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
             unzip -q gradle-8.2-bin.zip -d $HOME/gradle
-            $HOME/gradle/gradle-8.2/bin/gradle assembleDebug --no-daemon
+            $HOME/gradle/gradle-8.2/bin/gradle assembleDebug --no-daemon --stacktrace
           fi
 
       - name: Upload APK
@@ -49,3 +60,4 @@ jobs:
         with:
           name: PhoneSpecsGboard-APK
           path: project/PhoneSpecsGboard/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
